@@ -22,11 +22,11 @@ jobs:
       - name: Extract ZIP
         run: unzip RealtimeAndroidApp-complete.zip
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x RealtimeAndroidApp/gradlew
-
       - name: Build Debug APK
-        run: cd RealtimeAndroidApp && ./gradlew assembleDebug
+        run: |
+          cd RealtimeAndroidApp
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
