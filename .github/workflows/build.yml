@@ -22,26 +22,32 @@ jobs:
       - name: Extract ZIP
         run: unzip RealtimeAndroidApp-complete.zip
 
-      - name: Fix build.gradle
+      - name: Fix app build.gradle
         run: |
-          cd RealtimeAndroidApp
-          cat > build.gradle << 'EOF'
-          buildscript {
-              ext.kotlin_version = '1.9.0'
-              repositories {
-                  google()
-                  mavenCentral()
+          cat > RealtimeAndroidApp/app/build.gradle << 'EOF'
+          apply plugin: 'com.android.application'
+          apply plugin: 'kotlin-android'
+          android {
+              namespace 'com.example.realtimeapp'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.example.realtimeapp"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
               }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.0'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
               }
+              kotlinOptions { jvmTarget = '1.8' }
           }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+          dependencies {
+              implementation("androidx.core:core-ktx:1.13.1")
+              implementation("androidx.appcompat:appcompat:1.7.0")
+              implementation("com.google.android.material:material:1.12.0")
+              implementation("com.squareup.okhttp3:okhttp:4.12.0")
           }
           EOF
 
@@ -49,7 +55,7 @@ jobs:
         run: |
           cd RealtimeAndroidApp
           chmod +x gradlew
-          ./gradlew assembleDebug --warning-mode all
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
