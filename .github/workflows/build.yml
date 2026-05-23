@@ -19,14 +19,43 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Extract ZIP
-        run: unzip RealtimeAndroidApp-complete.zip
-
-      - name: Fix app build.gradle
+      - name: Create project
         run: |
-          cat > RealtimeAndroidApp/app/build.gradle << 'EOF'
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
+          mkdir -p app/src/main/java/com/example/realtimeapp
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "RealtimeAndroidApp"
+          include ':app'
+          EOF
+
+          cat > build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application' version '8.1.0' apply false
+              id 'org.jetbrains.kotlin.android' version '1.9.0' apply false
+          }
+          EOF
+
+          cat > app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
           android {
               namespace 'com.example.realtimeapp'
               compileSdk 34
@@ -51,9 +80,85 @@ jobs:
           }
           EOF
 
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="Realtime App" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical">
+              <TextView android:id="@+id/statusText"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:text="Yükleniyor..."
+                  android:textSize="16sp"
+                  android:padding="12dp"/>
+              <WebView android:id="@+id/webView"
+                  android:layout_width="match_parent"
+                  android:layout_height="0dp"
+                  android:layout_weight="1"/>
+          </LinearLayout>
+          EOF
+
+          cat > app/src/main/java/com/example/realtimeapp/MainActivity.kt << 'EOF'
+          package com.example.realtimeapp
+          import android.annotation.SuppressLint
+          import android.os.Bundle
+          import android.webkit.*
+          import android.widget.TextView
+          import androidx.appcompat.app.AppCompatActivity
+          import okhttp3.*
+          import kotlin.concurrent.thread
+          class MainActivity : AppCompatActivity() {
+              private val client = OkHttpClient()
+              @SuppressLint("SetJavaScriptEnabled")
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContentView(R.layout.activity_main)
+                  val webView = findViewById<android.webkit.WebView>(R.id.webView)
+                  val statusText = findViewById<TextView>(R.id.statusText)
+                  webView.webViewClient = WebViewClient()
+                  webView.webChromeClient = WebChromeClient()
+                  webView.settings.javaScriptEnabled = true
+                  webView.settings.domStorageEnabled = true
+                  webView.loadUrl("https://studio--studio-786783784-cb7fe.us-central1.hosted.app/")
+                  thread {
+                      while (true) {
+                          try {
+                              val req = Request.Builder().url("https://studio--studio-786783784-cb7fe.us-central1.hosted.app/").build()
+                              val resp = client.newCall(req).execute()
+                              val len = resp.body?.string()?.length
+                              runOnUiThread { statusText.text = "Bağlantı Aktif | Boyut: $len" }
+                              Thread.sleep(5000)
+                          } catch (e: Exception) {
+                              runOnUiThread { statusText.text = "Hata: ${e.message}" }
+                          }
+                      }
+                  }
+              }
+          }
+          EOF
+
+          cat > gradle.properties << 'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+
       - name: Build Debug APK
         run: |
-          cd RealtimeAndroidApp
           chmod +x gradlew
           ./gradlew assembleDebug
 
@@ -61,4 +166,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RealtimeApp-debug
-          path: RealtimeAndroidApp/app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
