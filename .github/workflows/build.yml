@@ -22,11 +22,34 @@ jobs:
       - name: Extract ZIP
         run: unzip RealtimeAndroidApp-complete.zip
 
+      - name: Fix build.gradle
+        run: |
+          cd RealtimeAndroidApp
+          cat > build.gradle << 'EOF'
+          buildscript {
+              ext.kotlin_version = '1.9.0'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.0'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
+
       - name: Build Debug APK
         run: |
           cd RealtimeAndroidApp
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --warning-mode all
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
