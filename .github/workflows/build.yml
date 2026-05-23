@@ -19,13 +19,18 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Gradle 8.4
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
       - name: Create project
         run: |
           mkdir -p app/src/main/java/com/example/realtimeapp
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
 
-          cat > settings.gradle << 'EOF'
+          cat > settings.gradle << 'SETTEOF'
           pluginManagement {
               repositories {
                   google()
@@ -42,16 +47,16 @@ jobs:
           }
           rootProject.name = "RealtimeAndroidApp"
           include ':app'
-          EOF
+          SETTEOF
 
-          cat > build.gradle << 'EOF'
+          cat > build.gradle << 'BUILDEOF'
           plugins {
               id 'com.android.application' version '8.1.0' apply false
               id 'org.jetbrains.kotlin.android' version '1.9.0' apply false
           }
-          EOF
+          BUILDEOF
 
-          cat > app/build.gradle << 'EOF'
+          cat > app/build.gradle << 'APPEOF'
           plugins {
               id 'com.android.application'
               id 'org.jetbrains.kotlin.android'
@@ -78,9 +83,14 @@ jobs:
               implementation("com.google.android.material:material:1.12.0")
               implementation("com.squareup.okhttp3:okhttp:4.12.0")
           }
-          EOF
+          APPEOF
 
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          cat > gradle.properties << 'PROPEOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          PROPEOF
+
+          cat > app/src/main/AndroidManifest.xml << 'MANEOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
               <application android:label="Realtime App" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
@@ -92,9 +102,9 @@ jobs:
                   </activity>
               </application>
           </manifest>
-          EOF
+          MANEOF
 
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          cat > app/src/main/res/layout/activity_main.xml << 'LAYEOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
@@ -103,7 +113,7 @@ jobs:
               <TextView android:id="@+id/statusText"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:text="Yükleniyor..."
+                  android:text="Yukleniyor..."
                   android:textSize="16sp"
                   android:padding="12dp"/>
               <WebView android:id="@+id/webView"
@@ -111,9 +121,9 @@ jobs:
                   android:layout_height="0dp"
                   android:layout_weight="1"/>
           </LinearLayout>
-          EOF
+          LAYEOF
 
-          cat > app/src/main/java/com/example/realtimeapp/MainActivity.kt << 'EOF'
+          cat > app/src/main/java/com/example/realtimeapp/MainActivity.kt << 'KTEOF'
           package com.example.realtimeapp
           import android.annotation.SuppressLint
           import android.os.Bundle
@@ -141,7 +151,7 @@ jobs:
                               val req = Request.Builder().url("https://studio--studio-786783784-cb7fe.us-central1.hosted.app/").build()
                               val resp = client.newCall(req).execute()
                               val len = resp.body?.string()?.length
-                              runOnUiThread { statusText.text = "Bağlantı Aktif | Boyut: $len" }
+                              runOnUiThread { statusText.text = "Baglanti Aktif | Boyut: $len" }
                               Thread.sleep(5000)
                           } catch (e: Exception) {
                               runOnUiThread { statusText.text = "Hata: ${e.message}" }
@@ -150,12 +160,7 @@ jobs:
                   }
               }
           }
-          EOF
-
-          cat > gradle.properties << 'EOF'
-          android.useAndroidX=true
-          android.enableJetifier=true
-          EOF
+          KTEOF
 
       - name: Build Debug APK
         run: gradle assembleDebug
